@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MoodLens AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #141e30, #243b55);
+    color: white;
+    overflow: hidden;
+}
+
+/* Layout */
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Left Panel */
+.left-panel {
+    flex: 2;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+/* Right Panel */
+.right-panel {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    padding: 25px;
+    overflow-y: auto;
+    border-left: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Cards */
+.card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    padding: 20px;
+    border-radius: 18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+
+/* Textarea */
+textarea {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    resize: none;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+/* Buttons */
+button {
+    margin-top: 15px;
+    padding: 10px 25px;
+    border: none;
+    border-radius: 25px;
+    background: #6c63ff;
+    color: white;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+/* Sentiment Badge */
+.sentiment-badge {
+    display: inline-block;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.badge-positive { background: rgba(40,167,69,0.2); color: #28a745; }
+.badge-neutral  { background: rgba(255,193,7,0.2); color: #ffc107; }
+.badge-negative { background: rgba(220,53,69,0.2); color: #dc3545; }
+
+/* Metrics */
+.metrics {
+    display: flex;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.metric-card {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.metric-card p {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 5px 0 0;
+}
+
+/* Progress Bars */
+.progress {
+    background: #2c2c2c;
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 8px 0 15px;
+}
+
+.bar {
+    height: 14px;
+    transition: width 1s ease-in-out;
+}
+
+.positive { background: #28a745; }
+.neutral  { background: #ffc107; }
+.negative { background: #dc3545; }
+
+/* Chart */
+.chart-container {
+    height: 220px;
+    margin-top: 10px;
+}
+
+/* History */
+.history-item {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 0;
+    font-size: 14px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+
+<div class="card">
+<h2>MoodLens AI 🚀</h2>
+<form method="POST">
+<textarea name="feedback" rows="4" placeholder="Type your feedback..." required></textarea>
+<button type="submit">Analyze</button>
+</form>
+</div>
+
+{% if result %}
+
+<div class="card">
+
+<!-- Sentiment Badge -->
+<div class="sentiment-badge 
+{% if result.sentiment == 'POSITIVE' %}badge-positive
+{% elif result.sentiment == 'NEGATIVE' %}badge-negative
+{% else %}badge-neutral
+{% endif %}
+">
+{{ result.sentiment }}
+{% if result.sentiment == 'POSITIVE' %} 😄
+{% elif result.sentiment == 'NEGATIVE' %} 😡
+{% else %} 😐
+{% endif %}
+</div>
+
+<!-- Metrics -->
+<div class="metrics">
+    <div class="metric-card">
+        <h4>Confidence</h4>
+        <p>{{ confidence }}%</p>
+    </div>
+    <div class="metric-card">
+        <h4>Dominant</h4>
+        <p>{{ result.sentiment }}</p>
+    </div>
+</div>
+
+<!-- Bars -->
+<p>Positive {{ result.positive }}%</p>
+<div class="progress">
+<div class="bar positive" style="width:{{ result.positive }}%"></div>
+</div>
+
+<p>Neutral {{ result.neutral }}%</p>
+<div class="progress">
+<div class="bar neutral" style="width:{{ result.neutral }}%"></div>
+</div>
+
+<p>Negative {{ result.negative }}%</p>
+<div class="progress">
+<div class="bar negative" style="width:{{ result.negative }}%"></div>
+</div>
+
+<!-- Chart -->
+<div class="chart-container">
+<canvas id="pieChart"></canvas>
+</div>
+
+<button onclick="copyResult()">Copy Result</button>
+
+</div>
+
+<div class="card">
+<h3>Sentence Breakdown</h3>
+{% for s in sentences %}
+<p>{{ s.text }} → 
+<strong class="
+{% if s.sentiment == 'POSITIVE' %}badge-positive
+{% elif s.sentiment == 'NEGATIVE' %}badge-negative
+{% else %}badge-neutral
+{% endif %}
+">
+{{ s.sentiment }}
+</strong>
+</p>
+{% endfor %}
+</div>
+
+<script>
+window.onload = function() {
+    const ctx = document.getElementById('pieChart');
+
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Positive', 'Neutral', 'Negative'],
+                datasets: [{
+                    data: [
+                        {{ result.positive }},
+                        {{ result.neutral }},
+                        {{ result.negative }}
+                    ],
+                    backgroundColor: [
+                        '#28a745',
+                        '#ffc107',
+                        '#dc3545'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    animateRotate: true,
+                    duration: 1200
+                }
+            }
+        });
+    }
+};
+
+function copyResult() {
+    const text = "Sentiment: {{ result.sentiment }} | Confidence: {{ confidence }}%";
+    navigator.clipboard.writeText(text);
+    alert("Copied!");
+}
+</script>
+
+{% endif %}
+
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+
+<h3>Analysis History</h3>
+
+{% if history %}
+{% for item in history %}
+<div class="history-item">
+{{ item.text }} → 
+<strong class="
+{% if item.sentiment == 'POSITIVE' %}badge-positive
+{% elif item.sentiment == 'NEGATIVE' %}badge-negative
+{% else %}badge-neutral
+{% endif %}
+">
+{{ item.sentiment }}
+</strong>
+</div>
+{% endfor %}
+{% else %}
+<p>No history yet.</p>
+{% endif %}
+
+</div>
+
+</div>
+
+</body>
+</html>

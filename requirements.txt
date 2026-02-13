@@ -1,0 +1,5 @@
+flask
+azure-ai-textanalytics
+azure-core
+python-dotenv
+gunicorn
