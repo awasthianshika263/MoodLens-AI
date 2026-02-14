@@ -86,50 +86,33 @@ Type any feedback or text → Instantly get sentiment (Positive, Negative, Neutr
 
 
 
-Azure Deployment Steps
+Azure Deployment Steps:
 
 1. Install Azure CLI and login:
-
    az login
 
-
 2. Deploy from project folder (Central India region used for student subscription):
-
    az webapp up --name moodlensai-anshika263 --runtime "PYTHON|3.12" --sku F1 --logs --location centralindia
 
-
 3. In Azure Portal → App Services → moodlensai-anshika263 → Configuration → Application settings:
-
    Add: AZURE_KEY = [your key]
    Add: AZURE_ENDPOINT = [your endpoint]
    Add: SCM_DO_BUILD_DURING_DEPLOYMENT = true
 
 4. In General settings / Stack settings:
-
    Startup Command:
      gunicorn --bind=0.0.0.0:$PORT app:app
 
 5. Save and Restart the app.
 
 
-Screenshots
-
-(Add your screenshots in a screenshots folder in the repo)
-Positive Sentiment Result
-Negative Sentiment Result
-Neutral Sentiment Result
-Analysis History & UI
-
-
-Challenges & Solutions
-
+Challenges & Solutions:
   Azure for Students subscription had region restrictions → Used centralindia (allowed region)
   Startup command not working initially → Set gunicorn --bind=0.0.0.0:$PORT app:app
   History resets on app restart → Currently in-memory (future enhancement: add database)
 
 
-Future Enhancements
-
+Future Enhancements:
   Persistent history using SQLite or Azure Cosmos DB
   User authentication and personal history
   Multi-language sentiment analysis
