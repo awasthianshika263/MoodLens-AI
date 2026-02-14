@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
+from flask_session import Session  # new import
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
 from dotenv import load_dotenv
@@ -8,23 +9,26 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Load Azure credentials from environment
+# Session setup (very important - har user ke liye alag data)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')  # random strong key daal
+app.config['SESSION_TYPE'] = 'filesystem'  # simple file-based session
+Session(app)
+
+# Azure setup (same as before)
 key = os.getenv("AZURE_KEY")
 endpoint = os.getenv("AZURE_ENDPOINT")
-
-if not key or not endpoint:
-    print("WARNING: Azure credentials not found. Check environment variables.")
-
 credential = AzureKeyCredential(key) if key else None
 client = TextAnalyticsClient(endpoint=endpoint, credential=credential) if key and endpoint else None
-
-history = []
 
 @app.route("/", methods=["GET", "POST"])
 def home():
     result = None
     sentences = []
     confidence = None
+
+    # Har user ke liye alag history (session se)
+    if 'history' not in session:
+        session['history'] = []
 
     if request.method == "POST":
         user_input = request.form.get("feedback")
@@ -35,7 +39,6 @@ def home():
                     [user_input],
                     show_opinion_mining=True
                 )
-
                 doc = response[0]
 
                 positive = round(doc.confidence_scores.positive * 100, 2)
@@ -57,10 +60,12 @@ def home():
                         "sentiment": sentence.sentiment.upper()
                     })
 
-                history.append({
+                # History session mein add karo (global nahi)
+                session['history'].append({
                     "text": user_input,
                     "sentiment": doc.sentiment.upper()
                 })
+                session.modified = True  # important - session update ho
 
             except Exception as e:
                 print("Azure Error:", e)
@@ -69,7 +74,7 @@ def home():
         "index.html",
         result=result,
         sentences=sentences,
-        history=history,
+        history=session.get('history', []),  # session se history bhej
         confidence=confidence
     )
 
